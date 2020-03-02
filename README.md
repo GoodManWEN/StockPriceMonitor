@@ -57,8 +57,9 @@
 
 ## 避坑指南
 
- - linux Python版本默认配置./configure不包含sqlite插件。需要执行`sudo apt-get install libsqlite3-dev`并按照配置`./configure --enable-optimozations --enable-loadable-sqlite-extensions`重新编译安装Python
- - 程序在测试期间产生的临时文件，如果使用root账号测试则root拥有其归属，持久化运行使用非root账号会出现权限错误。
+ - linux Python 版本默认配置 ./configure 不包含 sqlite 插件。需要执行`sudo apt-get install libsqlite3-dev`并按照配置`./configure --enable-optimozations --enable-loadable-sqlite-extensions`重新编译安装 Python
+ - 程序在测试期间产生的临时文件，如果使用 root 账号测试则 root 拥有其归属，持久化运行使用非 root 账号会出现权限错误。
+ - 基于 Python3.7 + 
     
     
     
