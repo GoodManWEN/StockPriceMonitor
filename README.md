@@ -1,0 +1,2 @@
+# StockPriceMonitor
+监控股票达到制定价格后触发事件，使用QQmail推送到手机。基于aiohttp
