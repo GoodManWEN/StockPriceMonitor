@@ -59,6 +59,8 @@
     python3 aiomonitorstock.py
 
 10、持久化运行，并配置反向代理
+    
+    # app 挂载于 127.0.0.1:7923
 
 ## 避坑指南
 
