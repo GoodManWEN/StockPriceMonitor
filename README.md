@@ -44,11 +44,7 @@
 7、装载目录
 
     cd .. && \
-    cp -r stockm/dist/css static/ && \
-    cp -r stockm/dist/js static/ && \
-    cp stockm/dist/favicon.ico static/ && \
-    cp stockm/dist/index.html templates/ && \
-    python3 postaddjinja2.py
+    bash loading.sh
 
 8、安装Python依赖
 
