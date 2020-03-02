@@ -2,33 +2,33 @@
 监控股票达到制定价格后触发事件，使用QQmail推送到手机。基于aiohttp
 
 ## 安装说明
--1、不用编译也可以直接运行
+0、不用编译也可以直接运行
 
-0、下载项目仓库
+1、下载项目仓库
 
     https://github.com/GoodManWEN/StockPriceMonitor.git && \
     cd StockPriceMonitor
     
-1、安装指定版本的nodejs
+2、安装指定版本的nodejs
 
     curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash - && \
     sudo apt-get install -y nodejs
     
-2、安装vue脚手架
+3、安装vue脚手架
 
     npm install -g @vue/cli
 
-3、初始化一个vue项目
+4、初始化一个vue项目
 
     vue create stockm 
 
-4、添加axios插件
+5、添加axios插件
 
     cd stockm && \
     vue add axios && \
     cd ..
 
-5、覆盖前端src
+6、覆盖前端src
 
     rm -rf src/components && \
     rm -rf src/plugins && \
@@ -37,12 +37,9 @@
     cp -r ../src/plugins src/ && \
     cp ../src/App.vue src/App.vue
     
-6、编译
+7、编译并挂载
 
-    npm run build
- 
-7、装载目录
-
+    npm run build && \
     cd .. && \
     bash loading.sh
 
