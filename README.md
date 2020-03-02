@@ -2,6 +2,8 @@
 监控股票达到制定价格后触发事件，使用QQmail推送到手机。基于aiohttp
 
 ## 安装说明
+-1、不用编译也可以直接运行
+
 0、下载项目仓库
 
     https://github.com/GoodManWEN/StockPriceMonitor.git && \
