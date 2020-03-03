@@ -46,12 +46,14 @@
 8、安装Python依赖
 
     pip3 install -r requirements.txt
-    
-9、run serve
+
+9、修改`aiomonitorstock.py`配置信息
+
+10、run serve
 
     python3 aiomonitorstock.py
 
-10、持久化运行，解析域名，并配置反向代理
+11、持久化运行，解析域名，并配置反向代理
     
     # app 挂载于 127.0.0.1:7923
 
