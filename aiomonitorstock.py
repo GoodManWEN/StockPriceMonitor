@@ -35,8 +35,8 @@ auth_username = 'admin'
 auth_password = 'password'
 username_email = '60608080@qq.com'
 password_email = 'gfdsalkjhgwkbgaj'
-fetch_time_internal = 180
-min_fetch_internal = 60
+fetch_time_internal = 90
+min_fetch_internal = 30
 run_host = '127.0.0.1'
 run_port = 7923
 #######################################
@@ -93,9 +93,10 @@ async def hello(request):
     <tr>
     <th>任务ID</th>
     <th>股票代码</th>
+    <th>当前价格</th>
     <th>触发门槛</th>
     <th>目标价格</th>
-    <th>当前价格</th>
+    <th>最后更新时间</th>
     <th>完成状态</th>
     </tr>
 ''' 
@@ -103,7 +104,7 @@ async def hello(request):
         ret = '<h1>database fetch error.</h1>'
     else:
         for stockitem in reslts:
-            ret += f'<tr><td>{stockitem.taskid}</td><td>{stockitem.stocknum}</td><td>{"高于" if stockitem.incdesc == 0 else "低于"}</td><td>{stockitem.targetprice}</td><td>{stockitem.currentprice}</td><td>{"完成" if stockitem.isover == 1 else "未完成"}</td></tr>'
+            ret += f'<tr><td>{stockitem.taskid}</td><td>{stockitem.stocknum}</td><td>{stockitem.currentprice}</td><td>{"高于" if stockitem.incdesc == 0 else "低于"}</td><td>{stockitem.targetprice}</td><td>{stockitem.lastupdatetime}</td><td>{"完成" if stockitem.isover == 1 else "未完成"}</td></tr>'
         else:
             ret += '\n</table>'
 
@@ -140,12 +141,6 @@ async def add(request):
     except Exception as e:
         return web.Response(status=404)
 
-    # print(ret_v)
-    # print(stocknumber)
-    # print(targetprice)
-    # print(optionsvalue)
-    # print(str(get_time_string_east8()))
-
     return web.Response(text = 'true')
 
 @routes.get('/delete')
@@ -156,7 +151,6 @@ async def delete(request):
         return web.Response(status=404)
 
     taskid_ = data['taskid']
-    # print('delete : ',taskid_)
     try:
         taskid_ = int(taskid_)
         ret_val = sql.query_and_delete('Tasks',SQLhandler.Tasks.taskid == taskid_)
@@ -200,15 +194,15 @@ async def testmail(request):
     else:
         return web.Response(status=404)
 
-@routes.get('/printlist')
-async def printlist(request):
-    sql.print_all('Tasks')
-    return web.Response(text = '')
+# @routes.get('/printlist')
+# async def printlist(request):
+#     sql.print_all('Tasks')
+#     return web.Response(text = '')
 
-@routes.get('/flushall')
-async def flushall(request):
-    sql.flush_all('Tasks')
-    return web.Response(text = '')
+# @routes.get('/flushall')
+# async def flushall(request):
+#     sql.flush_all('Tasks')
+#     return web.Response(text = '')
 
 def send_mail_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
     try:
@@ -264,7 +258,7 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
         return f"https://query1.finance.yahoo.com/v8/finance/chart/{stocknum}.{'SS' if int(stocknum) >= 600000 else 'SZ'}?region=US&lang=en-US&includePrePost=false&interval=2m&range=1d&corsDomain=finance.yahoo.com&.tsrc=finance"
 
     def update_is_over(stockitem):
-        sql.query_and_update('Tasks' , 'taskid' , stockitem.taskid , 'isover' , 1)
+        sql.query_and_update('Tasks' , 'taskid' , stockitem.taskid , isover= 1)
 
     async def send_email_warp(stockitem,fetched_price):
         # return send_mail_alert(stockitem,fetched_price)
@@ -283,7 +277,8 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
             print(stockitem , fetched_price)
             print('###################')
 
-        sql.query_and_update('Tasks' , 'taskid' , stockitem.taskid , 'currentprice' , fetched_price)
+        __last_update_time = str(get_time_string_east8())
+        sql.query_and_update('Tasks' , 'taskid' , stockitem.taskid , currentprice=fetched_price , lastupdatetime = __last_update_time)
         if stockitem.incdesc == 0:
             if fetched_price >= stockitem.targetprice:
                 update_is_over(stockitem)
