@@ -1,4 +1,3 @@
-
 from sqlalchemy import create_engine, ForeignKey 
 from sqlalchemy import text as sqltext
 from sqlalchemy import Column, Integer , SmallInteger, String , Float
@@ -19,16 +18,18 @@ class SQLhandler:
 		incdesc = Column(SmallInteger ,nullable=False)
 		isover = Column(SmallInteger ,nullable=False , default=0)
 		currentprice = Column(Float ,nullable=False,default = 0)
+		lastupdatetime = Column(String(26) ,nullable=False,default = "1971-01-01 08:00:00+08:00")
 
 		def __str__(self):
-			return f'Tasks(taskid = {self.taskid} , stocknum = {self.stocknum} , targetprice = {self.targetprice} , incdesc = {self.incdesc} , isover = {self.isover} , currentprice = {self.currentprice})'
+			return f'Tasks(taskid = {self.taskid} , stocknum = {self.stocknum} , targetprice = {self.targetprice} , incdesc = {self.incdesc} , isover = {self.isover} , currentprice = {self.currentprice}) , lastupdatetime = { self.lastupdatetime }'
+
 		def __repr__(self):
 			return self.__str__()
 
 
-	def __init__(self , database_name = 'foo.db'):
+	def __init__(self):
 		self._working_path = path.dirname(path.abspath(__file__))
-		self._database_path = path.join(self._working_path , database_name)
+		self._database_path = path.join(self._working_path , 'foo.db')
 		self.base = SQLhandler.Base
 		self.engine = create_engine(f'sqlite:///{self._database_path}', echo=False)
 		self.base.metadata.create_all(self.engine)
@@ -96,15 +97,16 @@ class SQLhandler:
 			self.single_session.rollback()
 			return False
 
-	def query_and_update(self , table_name , query_col , ornval , modify_col , newval):
+	def query_and_update(self , table_name , query_col , ornval , **kwargs):
 		try:
 			target_table = self._convert_tablename_into_class(table_name)
 			assert target_table != False
 			assert hasattr(target_table , query_col)
 			query_target_col = getattr(target_table , query_col)
 			query_res = self.single_session.query(target_table).filter(query_target_col == ornval).one()
-			assert hasattr(query_res , modify_col)
-			setattr(query_res , modify_col , newval)
+			for modify_col , newval in kwargs.items():
+				assert hasattr(query_res , modify_col)
+				setattr(query_res , modify_col , newval)
 			self.single_session.commit()
 			return True
 		except Exception as e:
@@ -140,7 +142,7 @@ class SQLhandler:
 
 	def _example(self):
 		'''
-		这里都是接口使用范例 ,简单写 , 实现比较混乱 , 怕忘了。
+		这里都是接口使用范例 ，实现比较庞杂，怕忘了。
 		
 
 		1、新增
@@ -165,7 +167,7 @@ class SQLhandler:
 		sql.print_all('Tasks')
 
 		7、查询并更新
-		sql.query_and_update('Tasks' , 'taskid' , 2 , 'stocknum' , 600060)
+		sql.query_and_update('Tasks' , 'taskid' , 2 , stocknum = 600060 , isover = 1)
 		'''
 		pass
 
@@ -176,11 +178,11 @@ if __name__ == '__main__':
 	print(sql.insert_row('Tasks' ,stocknum='000055', targetprice=6.22 ,incdesc = 0 ))
 	print(sql.insert_row('Tasks' ,stocknum='000056', targetprice=6.22 ,incdesc = 0,isover = 1))
 	print(sql.insert_row('Tasks' ,stocknum='000057', targetprice=6.22 ,incdesc = 0,isover = 1))
-	print(sql.insert_row('Tasks' ,stocknum='000058', targetprice=6.22 ,incdesc = 0,isover = 0))
+	print(sql.insert_row('Tasks' ,stocknum='000058', targetprice=6.22 ,incdesc = 0 ,isover = 0))
 
-	print(sql.query_and_update('Tasks' , 'taskid' , 2 , 'stocknum' , 666660))
+	print(sql.query_and_update('Tasks' , 'taskid' , 2 , stocknum = 666660 , lastupdatetime = 'abc'))
 
 	sql.print_all('Tasks')
 	# print(sql.show_recent_100('Tasks','taskid'))
-	print(sql.get_all_monitor_target())
+	# print(sql.get_all_monitor_target())
 	print(sql.flush_all('Tasks'))
