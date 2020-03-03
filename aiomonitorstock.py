@@ -1,3 +1,4 @@
+
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -37,6 +38,7 @@ username_email = '60608080@qq.com'
 password_email = 'gfdsalkjhgwkbgaj'
 fetch_time_internal = 90
 min_fetch_internal = 30
+# qq_http_api_addr = 'https://134.134.134.134:5700/send_private_msg'
 run_host = '127.0.0.1'
 run_port = 7923
 #######################################
@@ -141,6 +143,12 @@ async def add(request):
     except Exception as e:
         return web.Response(status=404)
 
+    # print(ret_v)
+    # print(stocknumber)
+    # print(targetprice)
+    # print(optionsvalue)
+    # print(str(get_time_string_east8()))
+
     return web.Response(text = 'true')
 
 @routes.get('/delete')
@@ -151,6 +159,7 @@ async def delete(request):
         return web.Response(status=404)
 
     taskid_ = data['taskid']
+    # print('delete : ',taskid_)
     try:
         taskid_ = int(taskid_)
         ret_val = sql.query_and_delete('Tasks',SQLhandler.Tasks.taskid == taskid_)
@@ -188,21 +197,22 @@ async def lastupdatetime(request):
 @routes.get('/testmail')
 async def testmail(request):
     loop = asyncio.get_running_loop()
+    # loop.create_task(send_qq_alert('testing' ,0,0,0, 0))
     retv = await loop.run_in_executor(None, partial(send_mail_alert , 'testing' ,0,0,0, 0))
     if retv:
         return web.Response(text = '')
     else:
         return web.Response(status=404)
 
-# @routes.get('/printlist')
-# async def printlist(request):
-#     sql.print_all('Tasks')
-#     return web.Response(text = '')
+@routes.get('/printlist')
+async def printlist(request):
+    sql.print_all('Tasks')
+    return web.Response(text = '')
 
-# @routes.get('/flushall')
-# async def flushall(request):
-#     sql.flush_all('Tasks')
-#     return web.Response(text = '')
+@routes.get('/flushall')
+async def flushall(request):
+    sql.flush_all('Tasks')
+    return web.Response(text = '')
 
 def send_mail_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
     try:
@@ -241,6 +251,27 @@ def send_mail_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
     except Exception as e:
         return False
 
+async def send_qq_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
+    if stockitem == "testing":
+        message = "这是一条由股票监控软件产生的测试消息。"
+    else:
+        message = f'您订阅的股票，号码"{stocknum}"已经达到目标价格，触发条件[{"超过" if incdesc == 0 else "低于"}] [{targetprice}] ，当前价格{fetched_price}，请及时确认。'      
+    try:
+        target_qq = target_email.replace('@qq.com','')
+        assert len(target_qq) >= 5
+        assert target_qq.isdigit()
+        request_api_params = {
+                "user_id" : target_qq,
+                "message" : message
+        }
+        async with ClientSession() as session:
+            async with session.get(qq_http_api_addr , params=request_api_params) as response:
+                html = await response.text()
+        assert json.loads(html)['retcode'] == 0
+        return True
+    except:
+        return False
+
 async def single_fetch(url):
     try:
         async with ClientSession() as session:
@@ -263,6 +294,13 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
     async def send_email_warp(stockitem,fetched_price):
         # return send_mail_alert(stockitem,fetched_price)
         loop = asyncio.get_running_loop()
+        # loop.create_task(send_qq_alert( None ,
+        #                                 stockitem.stocknum ,
+        #                                 stockitem.incdesc ,
+        #                                 stockitem.targetprice ,
+        #                                 fetched_price
+        #                                 )
+        #                 )
         return await loop.run_in_executor(thread_pool, partial( send_mail_alert , 
                                                                 None ,
                                                                 stockitem.stocknum ,
@@ -282,6 +320,7 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
         if stockitem.incdesc == 0:
             if fetched_price >= stockitem.targetprice:
                 update_is_over(stockitem)
+                loop = asyncio.get_running_loop()
                 rv = await send_email_warp(stockitem,fetched_price)
                 return True
             else:
