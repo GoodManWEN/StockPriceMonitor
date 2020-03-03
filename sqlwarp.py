@@ -27,9 +27,9 @@ class SQLhandler:
 			return self.__str__()
 
 
-	def __init__(self):
+	def __init__(self , database_name = 'foo.db'):
 		self._working_path = path.dirname(path.abspath(__file__))
-		self._database_path = path.join(self._working_path , 'foo.db')
+		self._database_path = path.join(self._working_path , database_name)
 		self.base = SQLhandler.Base
 		self.engine = create_engine(f'sqlite:///{self._database_path}', echo=False)
 		self.base.metadata.create_all(self.engine)
@@ -142,7 +142,7 @@ class SQLhandler:
 
 	def _example(self):
 		'''
-		这里都是接口使用范例 ，实现比较庞杂，怕忘了。
+		这里都是接口使用范例 ,简单写 , 实现比较混乱 , 怕忘了。
 		
 
 		1、新增
