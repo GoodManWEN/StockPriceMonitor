@@ -1,4 +1,3 @@
-
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -143,12 +142,6 @@ async def add(request):
     except Exception as e:
         return web.Response(status=404)
 
-    # print(ret_v)
-    # print(stocknumber)
-    # print(targetprice)
-    # print(optionsvalue)
-    # print(str(get_time_string_east8()))
-
     return web.Response(text = 'true')
 
 @routes.get('/delete')
@@ -159,7 +152,6 @@ async def delete(request):
         return web.Response(status=404)
 
     taskid_ = data['taskid']
-    # print('delete : ',taskid_)
     try:
         taskid_ = int(taskid_)
         ret_val = sql.query_and_delete('Tasks',SQLhandler.Tasks.taskid == taskid_)
@@ -204,15 +196,15 @@ async def testmail(request):
     else:
         return web.Response(status=404)
 
-@routes.get('/printlist')
-async def printlist(request):
-    sql.print_all('Tasks')
-    return web.Response(text = '')
+# @routes.get('/printlist')
+# async def printlist(request):
+#     sql.print_all('Tasks')
+#     return web.Response(text = '')
 
-@routes.get('/flushall')
-async def flushall(request):
-    sql.flush_all('Tasks')
-    return web.Response(text = '')
+# @routes.get('/flushall')
+# async def flushall(request):
+#     sql.flush_all('Tasks')
+#     return web.Response(text = '')
 
 def send_mail_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
     try:
@@ -320,7 +312,6 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
         if stockitem.incdesc == 0:
             if fetched_price >= stockitem.targetprice:
                 update_is_over(stockitem)
-                loop = asyncio.get_running_loop()
                 rv = await send_email_warp(stockitem,fetched_price)
                 return True
             else:
