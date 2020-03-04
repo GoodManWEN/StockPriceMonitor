@@ -20,6 +20,7 @@ import json
 import random
 from aiohttp import web
 from aiohttp_basicauth import BasicAuthMiddleware
+from fetch_lib import *
 #######################################
 #  SETTINGS
 #######################################
@@ -35,11 +36,13 @@ auth_username = 'admin'
 auth_password = 'password'
 username_email = '60608080@qq.com'
 password_email = 'gfdsalkjhgwkbgaj'
-fetch_time_internal = 90
-min_fetch_internal = 30
-# qq_http_api_addr = 'https://134.134.134.134:5700/send_private_msg'
+fetch_time_internal = 60
+min_fetch_internal = 20
+QQ_ALERT = False
+qq_http_api_addr = 'https://134.134.134.134:5700/send_private_msg'
 run_host = '127.0.0.1'
 run_port = 7923
+using_api = fetch_agent_tonghuashun # fetch data agent
 #######################################
 #  
 #######################################
@@ -152,6 +155,7 @@ async def delete(request):
         return web.Response(status=404)
 
     taskid_ = data['taskid']
+    # print('delete : ',taskid_)
     try:
         taskid_ = int(taskid_)
         ret_val = sql.query_and_delete('Tasks',SQLhandler.Tasks.taskid == taskid_)
@@ -189,7 +193,8 @@ async def lastupdatetime(request):
 @routes.get('/testmail')
 async def testmail(request):
     loop = asyncio.get_running_loop()
-    # loop.create_task(send_qq_alert('testing' ,0,0,0, 0))
+    if QQ_ALERT:
+        loop.create_task(send_qq_alert('testing' ,0,0,0, 0))
     retv = await loop.run_in_executor(None, partial(send_mail_alert , 'testing' ,0,0,0, 0))
     if retv:
         return web.Response(text = '')
@@ -264,21 +269,17 @@ async def send_qq_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
     except:
         return False
 
-async def single_fetch(url):
+async def single_fetch(url , bias_ , return_method):
     try:
         async with ClientSession() as session:
-            async with session.get(url) as response:
+            async with session.get(url ,**bias_) as response:
                 html = await response.text()
-        html = json.loads(html)
-        return float(html['chart']['result'][0]['meta']['regularMarketPrice'])
+        return return_method(html)
     except:
         return None
 
 async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
     global last_update_time
-
-    def get_url(stocknum):
-        return f"https://query1.finance.yahoo.com/v8/finance/chart/{stocknum}.{'SS' if int(stocknum) >= 600000 else 'SZ'}?region=US&lang=en-US&includePrePost=false&interval=2m&range=1d&corsDomain=finance.yahoo.com&.tsrc=finance"
 
     def update_is_over(stockitem):
         sql.query_and_update('Tasks' , 'taskid' , stockitem.taskid , isover= 1)
@@ -286,13 +287,14 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
     async def send_email_warp(stockitem,fetched_price):
         # return send_mail_alert(stockitem,fetched_price)
         loop = asyncio.get_running_loop()
-        # loop.create_task(send_qq_alert( None ,
-        #                                 stockitem.stocknum ,
-        #                                 stockitem.incdesc ,
-        #                                 stockitem.targetprice ,
-        #                                 fetched_price
-        #                                 )
-        #                 )
+        if QQ_ALERT:
+            loop.create_task(send_qq_alert( None ,
+                                            stockitem.stocknum ,
+                                            stockitem.incdesc ,
+                                            stockitem.targetprice ,
+                                            fetched_price
+                                            )
+                            )
         return await loop.run_in_executor(thread_pool, partial( send_mail_alert , 
                                                                 None ,
                                                                 stockitem.stocknum ,
@@ -312,6 +314,7 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
         if stockitem.incdesc == 0:
             if fetched_price >= stockitem.targetprice:
                 update_is_over(stockitem)
+                loop = asyncio.get_running_loop()
                 rv = await send_email_warp(stockitem,fetched_price)
                 return True
             else:
@@ -325,7 +328,7 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
                 return False
 
     fetch_times = fetch_time_internal // min_fetch_internal
-    url = get_url(stockitem.stocknum)
+    url , bias_ ,return_met_ = using_api(stockitem.stocknum)
     for fetch_time in range(fetch_times):
         if DEBUG:
             sleep_time = 0
@@ -334,7 +337,7 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
         sleep_time_after = min_fetch_internal - sleep_time
         await asyncio.sleep(sleep_time)
         st_time = timetime()
-        fetched_price = await single_fetch(url)
+        fetched_price = await single_fetch(url , bias_ , return_met_)
         if fetched_price == None:
             return 
         res = await result_handler(stockitem , fetched_price)
