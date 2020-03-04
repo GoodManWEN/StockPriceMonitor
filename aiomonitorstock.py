@@ -155,7 +155,6 @@ async def delete(request):
         return web.Response(status=404)
 
     taskid_ = data['taskid']
-    # print('delete : ',taskid_)
     try:
         taskid_ = int(taskid_)
         ret_val = sql.query_and_delete('Tasks',SQLhandler.Tasks.taskid == taskid_)
