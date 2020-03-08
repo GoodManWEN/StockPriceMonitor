@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, ForeignKey 
 from sqlalchemy import text as sqltext
-from sqlalchemy import Column, Integer , SmallInteger, String , Float
+from sqlalchemy import Column, Integer , SmallInteger, String , Float ,Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from os import path
@@ -19,9 +19,10 @@ class SQLhandler:
 		isover = Column(SmallInteger ,nullable=False , default=0)
 		currentprice = Column(Float ,nullable=False,default = 0)
 		lastupdatetime = Column(String(26) ,nullable=False,default = "1971-01-01 08:00:00+08:00")
+		remarks = Column(Text ,nullable=False,default = "" )
 
 		def __str__(self):
-			return f'Tasks(taskid = {self.taskid} , stocknum = {self.stocknum} , targetprice = {self.targetprice} , incdesc = {self.incdesc} , isover = {self.isover} , currentprice = {self.currentprice}) , lastupdatetime = { self.lastupdatetime }'
+			return f'Tasks(taskid = {self.taskid} , stocknum = {self.stocknum} , targetprice = {self.targetprice} , incdesc = {self.incdesc} , isover = {self.isover} , currentprice = {self.currentprice}) , lastupdatetime = { self.lastupdatetime } , remarks = {repr(self.remarks)}'
 
 		def __repr__(self):
 			return self.__str__()

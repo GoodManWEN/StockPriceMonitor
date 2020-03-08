@@ -10,6 +10,8 @@
     <select class="select100" v-model="optionsvalue">
            <option v-for="(item ,index) of listArray" :value=item.val :key=index>{{item.name}}</option>
         </select>
+    <span class="text100">备注 :</span>
+    <input class="input100" v-model="remarks" type="text" name="fname">
     <button class="btn100" @click="submitclick" >新增</button>
     </div>
     <div class='div100'>
@@ -34,12 +36,13 @@ export default {
       stocknumber:'600567',
       targetprice:'30.00',
       optionsvalue : 0,
+      remarks:"",
       listArray:[
         {name:'超过这个值',val:0},
         {name:'低于这个值',val:1}
       ],
       title: "股票价格监控",
-      targetmail: "948566945@qq.com",
+      targetmail: "60608080@qq.com",
       last_update_time: "2020-01-01",
       delete_number: 1,
     }
@@ -58,7 +61,8 @@ export default {
         params: {
           stocknumber:this.stocknumber,
           targetprice:this.targetprice,
-          optionsvalue:this.optionsvalue
+          optionsvalue:this.optionsvalue,
+          remarks:this.remarks,
         }
       }).then(() => {location.reload()})
     },
@@ -85,6 +89,7 @@ export default {
 
 <style scoped>
 .input100 {
+  margin-top:10px;
   width : 200px;
   height : 45px;
   font-size:36px;

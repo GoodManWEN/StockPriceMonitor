@@ -100,6 +100,7 @@ async def hello(request):
     <th>当前价格</th>
     <th>触发门槛</th>
     <th>目标价格</th>
+    <th>备注</th>
     <th>最后更新时间</th>
     <th>完成状态</th>
     </tr>
@@ -108,7 +109,7 @@ async def hello(request):
         ret = '<h1>database fetch error.</h1>'
     else:
         for stockitem in reslts:
-            ret += f'<tr><td>{stockitem.taskid}</td><td>{stockitem.stocknum}</td><td>{stockitem.currentprice}</td><td>{"高于" if stockitem.incdesc == 0 else "低于"}</td><td>{stockitem.targetprice}</td><td>{stockitem.lastupdatetime}</td><td>{"完成" if stockitem.isover == 1 else "未完成"}</td></tr>'
+            ret += f'<tr><td>{stockitem.taskid}</td><td>{stockitem.stocknum}</td><td>{stockitem.currentprice}</td><td>{"高于" if stockitem.incdesc == 0 else "低于"}</td><td>{stockitem.targetprice}</td><td>{stockitem.remarks}</td><td>{stockitem.lastupdatetime}</td><td>{"完成" if stockitem.isover == 1 else "未完成"}</td></tr>'
         else:
             ret += '\n</table>'
 
@@ -124,7 +125,7 @@ async def add(request):
     #     return await loop.run_in_executor(None, partial(sql.insert_row , *args , **kwargs))
 
     data = dict(request.rel_url.query)
-    if 'stocknumber' in data and 'targetprice' in data and 'optionsvalue' in data:
+    if 'stocknumber' in data and 'targetprice' in data and 'optionsvalue' in data and 'remarks' in data:
         pass
     else:
         return web.Response(status=404)
@@ -132,14 +133,16 @@ async def add(request):
     stocknumber = data['stocknumber']
     targetprice = data['targetprice']
     optionsvalue = data['optionsvalue']
+    remarks = data['remarks']
     try:
         assert isinstance(stocknumber ,str)
+        assert isinstance(remarks ,str)
         assert len(stocknumber) == 6
         assert float(targetprice) > 0
         targetprice = float(targetprice)
         assert int(optionsvalue) in [0,1]
         optionsvalue = int(optionsvalue)
-        ret_v = sql.insert_row('Tasks' ,stocknum=stocknumber, targetprice=targetprice ,incdesc=optionsvalue)
+        ret_v = sql.insert_row('Tasks' ,stocknum=stocknumber, targetprice=targetprice ,incdesc=optionsvalue,remarks = remarks)
         # ret_v = await async_insert_row('Tasks' ,stocknum=stocknumber, targetprice=targetprice ,incdesc=optionsvalue)
         assert ret_v == True
     except Exception as e:
@@ -210,7 +213,7 @@ async def testmail(request):
 #     sql.flush_all('Tasks')
 #     return web.Response(text = '')
 
-def send_mail_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
+def send_mail_alert(stockitem,stocknum,incdesc,targetprice,fetched_price , remarks = ""):
     try:
         rcptlist = [target_email]
         receivers = ','.join(rcptlist)
@@ -232,7 +235,7 @@ def send_mail_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
             msg['To'] = receivers
 
             alternative = MIMEMultipart('alternative')
-            text_ = f'您订阅的股票，号码"{stocknum}"已经达到目标价格，触发条件[{"超过" if incdesc == 0 else "低于"}] [{targetprice}] ，当前价格{fetched_price}，请及时确认。'
+            text_ = f'您订阅的股票，号码"{stocknum}"已经达到目标价格，触发条件[{"超过" if incdesc == 0 else "低于"}] [{targetprice}] ，当前价格{fetched_price}，备注 : "{remarks}" , 请及时确认。'
             hhhhh = '\n\n'
             textplain = MIMEText(f'{text_}{hhhhh}服务器时间{time.asctime( time.localtime(time.time()) )}', _subtype='plain', _charset='UTF-8')
             alternative.attach(textplain)
@@ -247,11 +250,11 @@ def send_mail_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
     except Exception as e:
         return False
 
-async def send_qq_alert(stockitem,stocknum,incdesc,targetprice,fetched_price):
+async def send_qq_alert(stockitem,stocknum,incdesc,targetprice,fetched_price , remarks = ""):
     if stockitem == "testing":
         message = "这是一条由股票监控软件产生的测试消息。"
     else:
-        message = f'您订阅的股票，号码"{stocknum}"已经达到目标价格，触发条件[{"超过" if incdesc == 0 else "低于"}] [{targetprice}] ，当前价格{fetched_price}，请及时确认。'      
+        message = f'您订阅的股票，号码"{stocknum}"已经达到目标价格，触发条件[{"超过" if incdesc == 0 else "低于"}] [{targetprice}] ，当前价格{fetched_price}，备注：“{remarks}” ，请及时确认。'      
     try:
         target_qq = target_email.replace('@qq.com','')
         assert len(target_qq) >= 5
@@ -291,7 +294,8 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
                                             stockitem.stocknum ,
                                             stockitem.incdesc ,
                                             stockitem.targetprice ,
-                                            fetched_price
+                                            fetched_price,
+                                            stockitem.remarks
                                             )
                             )
         return await loop.run_in_executor(thread_pool, partial( send_mail_alert , 
@@ -299,7 +303,8 @@ async def fetch_once(stockitem , fetch_time_internal , min_fetch_internal):
                                                                 stockitem.stocknum ,
                                                                 stockitem.incdesc ,
                                                                 stockitem.targetprice ,
-                                                                fetched_price
+                                                                fetched_price,
+                                                                stockitem.remarks
                                                                 ) )
 
     async def result_handler(stockitem , fetched_price):
