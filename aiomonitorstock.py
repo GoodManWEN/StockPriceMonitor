@@ -359,6 +359,11 @@ async def spider_core():
         print(current_time ,"scaned list" ,end='')
         if current_time.hour in trade_time_utc8:
             print(',decide to work')
+            if current_time.hour == 9:
+                if current_time.minute < 30:
+                    print('before 9:30 , sleep')
+                    await asyncio.sleep(10)
+                    continue
             scan_list = sql.get_all_monitor_target()
             for stockitem in scan_list:
                 loop.create_task(fetch_once(stockitem ,fetch_time_internal ,min_fetch_internal))
