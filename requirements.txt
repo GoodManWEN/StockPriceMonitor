@@ -1,4 +1,4 @@
-aiohttp==3.6.2
+aiohttp==3.7.4
 aiohttp_basicauth==0.2.0
 beautifulsoup4==4.8.2
 chardet==3.0.4
